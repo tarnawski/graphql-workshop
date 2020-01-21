@@ -543,6 +543,9 @@
     "twig/twig": {
         "version": "v2.12.2"
     },
+    "webonyx/graphql-php": {
+        "version": "v0.13.8"
+    },
     "zendframework/zend-code": {
         "version": "3.4.0"
     },
