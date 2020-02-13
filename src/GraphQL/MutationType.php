@@ -2,30 +2,21 @@
 
 namespace App\GraphQL;
 
-use App\Entity\Post;
-use App\Repository\UserRepository;
+use App\GraphQL\Factory\PostFactory;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
-use Symfony\Component\String\Slugger\SluggerInterface;
 
 class MutationType extends ObjectType
 {
-    /** @var UserRepository */
-    private $userRepository;
+    private EntityManagerInterface $entityManager;
+    private PostFactory $postFactory;
 
-    /** @var EntityManagerInterface */
-    private $entityManager;
-
-    /** @var SluggerInterface */
-    private $slugger;
-
-    public function __construct(UserRepository $userRepository, EntityManagerInterface $entityManager, SluggerInterface $slugger)
+    public function __construct(EntityManagerInterface $entityManager, PostFactory $postFactory)
     {
-        $this->userRepository = $userRepository;
         $this->entityManager = $entityManager;
-        $this->slugger = $slugger;
+        $this->postFactory = $postFactory;
 
         $config = [
             'name' => 'Mutation',
@@ -43,9 +34,9 @@ class MutationType extends ObjectType
                             'message' => ['type' => Type::string()],
                         ]
                     ]),
-                    'resolve' => function ($calc, $args) {
+                    'resolve' => function ($calc, array $args) {
                         try {
-                            $post = $this->createPost($args['title'], $args['summary'], $args['content']);
+                            $post = $this->postFactory->build($args['title'], $args['summary'], $args['content']);
                             $this->entityManager->persist($post);
                             $this->entityManager->flush();
                         } catch (Exception $exception) {
@@ -59,17 +50,5 @@ class MutationType extends ObjectType
         ];
 
         parent::__construct($config);
-    }
-
-    private function createPost(string $title, string $summary, string $content): Post
-    {
-        $post = new Post();
-        $post->setTitle($title);
-        $post->setSummary($summary);
-        $post->setContent($content);
-        $post->setAuthor($this->userRepository->find(1));
-        $post->setSlug($this->slugger->slug($title)->toString());
-
-        return $post;
     }
 }
