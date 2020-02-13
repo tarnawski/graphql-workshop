@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\GraphQL\MutationType;
 use App\GraphQL\QueryType;
 use Exception;
 use GraphQL\GraphQL;
@@ -22,12 +23,13 @@ class ApiBlogController extends AbstractController
      *
      * @param Request $request
      * @param QueryType $queryType
+     * @param MutationType $mutationType
      * @return JsonResponse
      */
-    public function index(Request $request, QueryType $queryType): JsonResponse
+    public function index(Request $request, QueryType $queryType, MutationType $mutationType): JsonResponse
     {
         try {
-            $schema = new Schema(['query' => $queryType]);
+            $schema = new Schema(['query' => $queryType, 'mutation' => $mutationType]);
             $data = json_decode($request->getContent(), true);
 
             $result = GraphQL::executeQuery(
