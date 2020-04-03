@@ -39,7 +39,7 @@ class PostRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('p')
             ->addSelect('a', 't')
-            ->innerJoin('p.author', 'a')
+            ->leftJoin('p.author', 'a')
             ->leftJoin('p.tags', 't')
             ->where('p.publishedAt <= :now')
             ->orderBy('p.publishedAt', 'DESC')

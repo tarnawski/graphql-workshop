@@ -5,7 +5,7 @@
     "description": "Symfony Demo Application",
     "minimum-stability": "stable",
     "require": {
-        "php": "^7.2.9",
+        "php": "^7.4",
         "ext-json": "*",
         "ext-pdo_sqlite": "*",
         "doctrine/doctrine-bundle": "^1.12|^2.0",

@@ -4,6 +4,10 @@ namespace App\GraphQL;
 
 use App\Entity\Post;
 use App\Entity\Tag;
+use App\GraphQL\DataTransformer\PostToArrayTransformer;
+use App\GraphQL\DataTransformer\TagToArrayTransformer;
+use App\GraphQL\Type\PostType;
+use App\GraphQL\Type\TagType;
 use App\Repository\PostRepository;
 use App\Repository\TagRepository;
 use GraphQL\Type\Definition\ObjectType;
@@ -12,22 +16,23 @@ use GraphQL\Type\Definition\Type;
 
 class QueryType extends ObjectType
 {
-    /** @var PostRepository */
-    private $postRepository;
+    private PostRepository $postRepository;
+    private TagRepository $tagRepository;
+    private PostToArrayTransformer $postToArrayTransformer;
+    private TagToArrayTransformer $tagToArrayTransformer;
 
-    /** @var TagRepository */
-    private $tagRepository;
-
-    /**
-     * @param PostType $postType
-     * @param TagType $tagType
-     * @param PostRepository $postRepository
-     * @param TagRepository $tagRepository
-     */
-    public function __construct(PostType $postType, TagType $tagType, PostRepository $postRepository, TagRepository $tagRepository)
-    {
+    public function __construct(
+        PostType $postType,
+        TagType $tagType,
+        PostRepository $postRepository,
+        TagRepository $tagRepository,
+        PostToArrayTransformer $postToArrayTransformer,
+        TagToArrayTransformer $tagToArrayTransformer
+    ) {
         $this->postRepository = $postRepository;
         $this->tagRepository = $tagRepository;
+        $this->postToArrayTransformer = $postToArrayTransformer;
+        $this->tagToArrayTransformer = $tagToArrayTransformer;
 
         $config = [
             'name' => 'Query',
@@ -46,7 +51,7 @@ class QueryType extends ObjectType
                     'type' => Type::listOf($tagType),
                 ]
             ],
-            'resolveField' => function($rootValue, $args, $context, ResolveInfo $info) {
+            'resolveField' => function ($rootValue, $args, $context, ResolveInfo $info) {
                 return $this->{$info->fieldName}($rootValue, $args, $context, $info);
             }
         ];
@@ -56,34 +61,17 @@ class QueryType extends ObjectType
 
     private function posts($rootValue, $args, $context, ResolveInfo $info): array
     {
-        return array_map(function (Post $post) {
-            return [
-                'identity' => $post->getId(),
-                'title' => $post->getTitle(),
-                'summary' => $post->getSummary(),
-                'content' => $post->getContent(),
-                'author' => [
-                    'identity' => $post->getAuthor()->getId(),
-                    'name' => $post->getAuthor()->getFullName(),
-                    'email' => $post->getAuthor()->getEmail(),
-                ],
-                'tags' => array_map(function (Tag $tag) {
-                    return [
-                        'identity' => $tag->getId(),
-                        'name' => $tag->getName()
-                    ];
-                }, $post->getTags()->toArray())
-            ];
-        }, $this->postRepository->findBy([], null, $args['limit']));
+        return array_map(
+            fn (Post $post) => $this->postToArrayTransformer->transform($post),
+            $this->postRepository->findBy([], null, $args['limit'])
+        );
     }
 
     private function tags($rootValue, $args, $context, ResolveInfo $info): array
     {
-        return array_map(function (Tag $tag) {
-            return [
-                'identity' => $tag->getId(),
-                'name' => $tag->getName(),
-            ];
-        }, $this->tagRepository->findAll());
+        return array_map(
+            fn (Tag $tag) => $this->tagToArrayTransformer->transform($tag),
+            $this->tagRepository->findAll()
+        );
     }
 }
